@@ -342,7 +342,8 @@ CONSTRUCT {
        gsp:graph ?dataset .
 } 
 WHERE { 
-GRAPH ?dataset {?dataset a dcat:Dataset} 
+GRAPH ?dataset {?dataset a ?datasetTypeUnion} 
+FILTER(?datasetTypeUnion = dcat:Dataset || ?datasetTypeUnion = dcat:DatasetSeries)
 }""";
     <http://plugins.linkedpipes.com/ontology/e-sparqlEndpoint#queryControl> <http://plugins.linkedpipes.com/resource/configuration/None>;
     <http://plugins.linkedpipes.com/ontology/e-sparqlEndpoint#useAuthentication> false;
@@ -390,7 +391,9 @@ CONSTRUCT
 
 WHERE
 {
-?dataset a dcat:Dataset .
+?dataset a ?datasetTypeUnion .
+
+FILTER(?datasetTypeUnion = dcat:Dataset || ?datasetTypeUnion = dcat:DatasetSeries)
 
 	BIND(IRI(CONCAT(STR(?dataset), \"/query\")) as ?queryIRI)
 	BIND(CONCAT(REPLACE(STR(?dataset),\"[:/\\\\\\\\?=]\",\"-\"), \".ttl\") as ?fileName)
@@ -402,6 +405,7 @@ PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX foaf: <http://xmlns.com/foaf/0.1/>
 PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 PREFIX locn: <http://www.w3.org/ns/locn#>
+PREFIX dcatap: <http://data.europa.eu/r5r/>
 
 PREFIX leg: <https://data.gov.sk/def/ontology/legislation/>
 
@@ -409,7 +413,7 @@ CONSTRUCT {
 ?catalog dcat:dataset <\"\"\",STR(?dataset),\"\"\"> ;
          dcat:record ?record.
 
-<\"\"\",STR(?dataset),\"\"\"> a dcat:Dataset ;
+<\"\"\",STR(?dataset),\"\"\"> a ?datasetTypeUnion ;
     dcterms:title ?title ;
     dcterms:description ?description ;
     dcterms:issued ?issued ;
@@ -426,7 +430,11 @@ CONSTRUCT {
     dcterms:conformsTo ?conformsTo ;
     dcat:spatialResolutionInMeters ?spatialResolution ;
     dcat:temporalResolution ?temporalResolution ;
-    dcterms:isPartOf ?topDataset ;
+    dcat:inSeries ?topDataset ;
+    dcterms:conformsTo ?conformsTo ;
+    dcterms:relation ?relation ;
+    dcatap:applicableLegislation ?applicableLegislation ;
+    dcatap:hvdCategory ?hvdCategory ;
     dcterms:hasPart ?lowerDataset ;
     dcterms:publisher ?publisher ;
 	dcterms:identifier ?identifier ;
@@ -458,6 +466,7 @@ CONSTRUCT {
     dcat:compressFormat ?dcompressFormat ;
     dcat:packageFormat ?dpackageFormat ;
     dcterms:title ?dtitle ;
+    dcatap:applicableLegislation ?dApplicableLegislation ;
 	leg:termsOfUse ?pu .
 
 ?pu a leg:TermsOfUse ;
@@ -475,7 +484,15 @@ CONSTRUCT {
     dcterms:conformsTo ?sConformsTo ;
     dcat:endpointURL ?sEndpointURL ;
     dcat:endpointDescription ?sEndpointDescription ;
+    dcatap:applicableLegislation ?sApplicableLegislation ;
+    dcatap:hvdCategory ?sHvdCategory ;
+    dcat:contactPoint ?sCp ;
+    foaf:page ?sDocumentation ;
     dcat:servesDataset <\"\"\",STR(?dataset),\"\"\"> .
+
+?sCp a ?sCptype;
+    vcard:fn ?sCpfn ;
+    vcard:hasEmail ?sCpemail .
 
 ?record a dcat:CatalogRecord;
     foaf:primaryTopic <\"\"\",STR(?dataset),\"\"\"> ;
@@ -485,8 +502,10 @@ CONSTRUCT {
 }
 WHERE {
   {
-	<\"\"\",STR(?dataset),\"\"\"> a dcat:Dataset ;
+	<\"\"\",STR(?dataset),\"\"\"> a ?datasetTypeUnion ;
         dcterms:title ?title .
+
+    FILTER(?datasetTypeUnion = dcat:Dataset || ?datasetTypeUnion = dcat:DatasetSeries)
   } UNION {
     <\"\"\",STR(?dataset),\"\"\"> dcterms:description ?description .
   } UNION {
@@ -520,6 +539,7 @@ WHERE {
     OPTIONAL { ?distribution dcterms:format ?dformat . }
     OPTIONAL { ?distribution dcat:mediaType ?dmimeType . }
     OPTIONAL { ?distribution dcterms:conformsTo ?dconformsTo . }
+    OPTIONAL { ?distribution dcatap:applicableLegislation ?dApplicableLegislation . }
     OPTIONAL { ?distribution dcat:compressFormat ?dcompressFormat . }
     OPTIONAL { ?distribution dcat:packageFormat ?dpackageFormat . }
     OPTIONAL { ?distribution dcterms:title ?dtitle . }
@@ -530,6 +550,15 @@ WHERE {
                     dcat:endpointURL ?sEndpointURL .
         OPTIONAL { ?dataService dcat:endpointDescription ?sEndpointDescription .}
         OPTIONAL { ?dataService dcterms:conformsTo ?sConformsTo .}
+        OPTIONAL { ?dataService dcatap:hvdCategory ?sHvdCategory .}
+        OPTIONAL { ?dataService dcatap:applicableLegislation ?sApplicableLegislation .}
+        OPTIONAL { ?dataService foaf:page ?sDocumentation .}
+        OPTIONAL {
+            ?dataService dcat:contactPoint ?sCp .
+            ?sCp a ?sCptype.
+                OPTIONAL { ?sCp vcard:fn ?sCpfn . }
+                OPTIONAL { ?sCp vcard:hasEmail ?sCpemail . }
+        }
     }
   } UNION { ?catalog dcat:dataset <\"\"\",STR(?dataset),\"\"\"> .
   } UNION {
@@ -552,7 +581,11 @@ WHERE {
   } UNION { <\"\"\",STR(?dataset),\"\"\"> dcterms:conformsTo ?conformsTo .
   } UNION { <\"\"\",STR(?dataset),\"\"\"> dcat:spatialResolutionInMeters ?spatialResolution .
   } UNION { <\"\"\",STR(?dataset),\"\"\"> dcat:temporalResolution ?temporalResolution .
-  } UNION { <\"\"\",STR(?dataset),\"\"\"> dcterms:isPartOf ?topDataset .
+  } UNION { <\"\"\",STR(?dataset),\"\"\"> dcterms:conformsTo ?conformsTo .
+  } UNION { <\"\"\",STR(?dataset),\"\"\"> dcterms:relation ?relation .
+  } UNION { <\"\"\",STR(?dataset),\"\"\"> dcatap:applicableLegislation ?applicableLegislation .
+  } UNION { <\"\"\",STR(?dataset),\"\"\"> dcatap:hvdCategory ?hvdCategory .
+  } UNION { <\"\"\",STR(?dataset),\"\"\"> dcat:inSeries ?topDataset .
   } UNION { <\"\"\",STR(?dataset),\"\"\"> dcterms:identifier ?identifier .
   } UNION { <\"\"\",STR(?dataset),\"\"\"> dcat:theme ?theme .
 	OPTIONAL { ?theme skos:inScheme ?scheme . }
